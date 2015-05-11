@@ -1,0 +1,89 @@
+vladi, alonperl
+vladi kravtsov (312107139), alon perelmuter (200630887)
+EX: 2
+
+FILES:
+_____________________________________________________________________
+uthreads.h - header file of uthreads.
+uthreads.cpp - library which handles and scadualing threads 
+				(implementation of threads.h).
+Thread.h - header file of thread class.
+Thread.cpp - The thread class creats objects of type thread and 
+			handles Thread properties
+			(implementation of Thread.h).
+
+
+REMARKS:
+A basic explenation for our design :
+The uthread library should act as a manager for the multithreading.
+The idea was to deal with creating a new threads, keeping all their data
+(including their enviroment) and switching between the active threads
+that should be run.
+We chose to implement our program with class Thread, that stores all the
+thread data.
+The multithreading process of Round Robin+ which handle with thread 
+switching, works by a priority of each thread, and to store the data and
+to organize the threads by their status and priority we needed some data
+structure. First we tried to use standard library Priority_queue to store
+all ready threads in one queue, based on comperator of the priorities 
+(RED,ORAGNE, GREEN) and on each push\pop we will get the apropriate
+thread with the highest priority. Priority_queue doesn't provide access
+by key (tread ID) , and beacuse that some of the uthreads function
+need to access to specific thread by thread ID, priority_queue is not
+a good idea.
+instead of using priority_queue we chose to use 3 list, each of every 
+priority, what gives us more flexibility in removing or getting to 
+specific thread.
+another data structure that we used is Map<int,Thread*> that act as a
+dictionary to all the threads that are in the cloud (ready,blocked, running).
+The heart of our switching mechanism is switchThreads function, that call
+every sigaction, in this function we store all the enviroment of the 
+running thread, and jump to the stored enviroment of the next ready
+thread.
+
+
+ANSWERS:
+_______________________________________________________________________
+1. In this exercise you implemented a combination between RR and 
+priority queue scheduling policies.  
+Write down a con and a pro for each policy (RR and PQ), in regards of 
+threads scheduling.  
+Furthermore state how the cons\pros that you mentioned change or not in
+our combined policy (the RR+ you just implemented).
+
+Answer:
+
+	RR scheduling:
+
+	Pro - A big advantage of round robin scheduling over non-preemptive 
+	schedulers is that it dramatically improves average response times.
+	By limiting each task to a certain amount of time, the operating 
+	system can ensure that it can cycle through all ready tasks, 
+	giving each one a chance to run.
+
+	Con - there is an overhead to context switching and having to do so 
+	frequently increases the percentage of system time that is used on 
+	context switching rather than real work.
+
+
+	Priority Queue scheduling:
+
+	Pro - priority scheduling provides a good mechanism where the relative
+	 importance of each process may be precisely defined.
+
+	Con - If high priority processes use up a lot of CPU time, lower priority
+	processes may starve and be postponed indefinitely, leading to starvation.
+
+
+
+2. In real­life scheduling threads or processes are not simply blocked and 
+resumed, they wait for an event and are blocked until it happens. 
+Give a simple example of a  user­level event that will imply blocking a 
+thread (or a process).
+
+Answer:
+	
+	An simple example of such event is when we downloading a file and while
+	 the file is downloaded we press the pause button. this action will
+	  block the process and this process will wait for an event from 
+	  the user to continue his running. 
