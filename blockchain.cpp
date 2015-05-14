@@ -33,6 +33,9 @@ ChainManager* chain;
  * RETURN VALUE: On success 0, otherwise -1.
  */
 int init_blockchain() {
+	chain = new ChainManager();
+	chain->_isInit = false;
+	PRINT("init blockchain main prog")
 	return chain->init_blockchain();
 }
 

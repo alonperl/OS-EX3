@@ -25,26 +25,33 @@
 
 int ChainManager::init_blockchain() {
     try {
+//        cout << "askldfjaslkdj" << endl;
         if(!_isInit) {
             srand(time(0));
+
             init_hash_generator();
 //            _waitingList = new list<int>();
+
             _genesis = new Block(GENESIS_FATHER_ID, GENESIS_ID, GENESIS_DATA, GENESIS_LENGTH, GENESIS_FPTR);
+
 //            this._deepestLeafs = new vector<int>();
 //            this->_leafs = new vector<int>();
 //            this->_blockIds = new  priority_queue<int, vector<int>, greater<int>>();
             _allBlocks[GENESIS_ID] = _genesis;
             _chainSize = 0;
             _deepestDepth = 0;
+            _highestId = 0;
             _deepestLeafs.push_back(GENESIS_ID);
             _leafs.push_back(GENESIS_ID);
-            for(int i = 1; i < INT_MAX; i++) {
-                _blockIds.push(i);
-            }
+            PRINT("before for");
+
+//            for(int i = 1; i < INT_; i++) {
+//                _blockIds.push(i);
+//            }
             _closeChain = false;
             _isInit = true;
             //TODO : check if create of, else print error
-
+            cout << "starting daemon" << endl;
             pthread_create(&deamonTrd, NULL, &daemonThread, this);
         }
         else {
@@ -64,6 +71,20 @@ int ChainManager::init_blockchain() {
 Block* ChainManager::get_father_rand() {
     return _allBlocks[_deepestLeafs[rand()%(_deepestLeafs.size())]];
 }
+int ChainManager::get_new_id(){
+    pthread_mutex_lock(&_blockIdsMutex);
+    int newId = _highestId + 1;
+    if(!_blockIds.empty()) {
+        newId = _blockIds.top();
+        _blockIds.pop();
+    }
+    else {
+        _highestId = newId;
+    }
+    pthread_mutex_unlock(&_blockIdsMutex);
+    return newId;
+
+}
 
 int ChainManager::add_block(char *data, size_t length) {
     //TODO: check if chain was closed
@@ -71,8 +92,7 @@ int ChainManager::add_block(char *data, size_t length) {
     if(!_blockIds.empty() && _isInit) {
         // TODO : add mutex protection
         Block* father = get_father_rand();
-        int new_id = _blockIds.top();
-        _blockIds.pop();
+        int new_id = get_new_id();
         char* tmp = new char[length];
         memcpy(tmp, data, length);
         Block* newBlock = new Block(father->_id, new_id, tmp, length, father);

@@ -12,6 +12,8 @@
 #include <unordered_map>
 #include <queue>
 #include <pthread.h>
+#include <iostream>
+#define PRINT(x) cout<<x<<endl;
 
 using namespace std;
 
@@ -19,10 +21,11 @@ class ChainManager
 {
 
 public:
-
+    int _highestId;
     pthread_mutex_t _deepestLeafsMutex;
     pthread_mutex_t _leafsMutex;
     pthread_mutex_t _waitingListMutex;
+    pthread_mutex_t _blockIdsMutex;
     pthread_cond_t _waitingListCond;
     pthread_t deamonTrd;
     static void* daemonThread(void* ptr);
@@ -37,6 +40,7 @@ public:
     unordered_map<unsigned int, Block*> _allBlocks;
     Block* _genesis;
     Block* get_father_rand();
+    int get_new_id();
     int getUntouchable();
     /*
     * DESCRIPTION: This function initiates the Block chain, and creates the genesis Block. The genesis Block does not hold any transaction data
