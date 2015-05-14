@@ -22,12 +22,17 @@
 #define ALREADY_CHAINED 1
 #define NO_SONS 0
 
+ChainManager::ChainManager(): _deamonTrd() {
+    srand(time(0));
 
+
+
+}
 int ChainManager::init_blockchain() {
     try {
 //        cout << "askldfjaslkdj" << endl;
         if(!_isInit) {
-            srand(time(0));
+
 
             init_hash_generator();
 //            _waitingList = new list<int>();
@@ -52,7 +57,7 @@ int ChainManager::init_blockchain() {
             _isInit = true;
             //TODO : check if create of, else print error
             cout << "starting daemon" << endl;
-            pthread_create(&deamonTrd, NULL, &daemonThread, this);
+            pthread_create(&_deamonTrd, NULL, &daemonThread, this);
         }
         else {
             perror("init_blockchain called twice");

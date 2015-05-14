@@ -6,7 +6,7 @@
 
 #ifndef EX3_CHAINMANAGER_H
 #define EX3_CHAINMANAGER_H
-#include "Block.hpp"
+#include "Block.h"
 #include <list>
 #include <vector>
 #include <unordered_map>
@@ -27,7 +27,7 @@ public:
     pthread_mutex_t _waitingListMutex;
     pthread_mutex_t _blockIdsMutex;
     pthread_cond_t _waitingListCond;
-    pthread_t deamonTrd;
+    pthread_t _deamonTrd;
     static void* daemonThread(void* ptr);
     bool _closeChain;
     bool _isInit;
@@ -40,6 +40,7 @@ public:
     unordered_map<unsigned int, Block*> _allBlocks;
     Block* _genesis;
     Block* get_father_rand();
+    ChainManager();
     int get_new_id();
     int getUntouchable();
     /*

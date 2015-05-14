@@ -4,7 +4,7 @@
  *       Author: OS, os@cs.huji.ac.il
  */
 #include "blockchain.h"
-#include "Block.hpp"
+#include "Block.h"
 #include "hash.h"
 #include <unordered_map>
 #include <list>
@@ -21,7 +21,7 @@ using namespace std;
 #define GENESIS_DEPTH 0
 #define FAILURE -1
 
-ChainManager* chain;
+ChainManager chain;
 
 
 
@@ -33,10 +33,10 @@ ChainManager* chain;
  * RETURN VALUE: On success 0, otherwise -1.
  */
 int init_blockchain() {
-	chain = new ChainManager();
-	chain->_isInit = false;
+//	chain = new ChainManager();
+	chain._isInit = false;
 	PRINT("init blockchain main prog")
-	return chain->init_blockchain();
+	return chain.init_blockchain();
 }
 
 /*
@@ -53,7 +53,7 @@ int init_blockchain() {
 
 int add_block(char *data , size_t length) {
 
-	return chain->add_block(data, length);
+	return chain.add_block(data, length);
 
 }
 
@@ -69,7 +69,7 @@ int add_block(char *data , size_t length) {
  */
 
 int to_longest(int block_num) {
-	return chain->to_longest(block_num);
+	return chain.to_longest(block_num);
 }
 
 /*
@@ -80,7 +80,7 @@ int to_longest(int block_num) {
  */
   
 int attach_now(int block_num) {
-
+	return  chain.attach_now(block_num);
 }
 
 /*
@@ -90,7 +90,7 @@ int attach_now(int block_num) {
  */
   
 int was_added(int block_num) {
-
+	return chain.was_added(block_num);
 }
 
 /*
@@ -101,7 +101,7 @@ int was_added(int block_num) {
 
 int chain_size() {
 
-	return -1;
+	return chain.chain_size();
 }
 
 /*
@@ -110,7 +110,9 @@ int chain_size() {
  * RETURN VALUE: On success 0, otherwise -1.
  */
  
- int prune_chain();
+ int prune_chain() {
+	return chain.prune_chain();
+}
 
 /*
  * DESCRIPTION: Close the recent blockchain and reset the system, so that it is possible to call init_blockchain again. Non-blocking.
@@ -120,7 +122,9 @@ int chain_size() {
  * In case of a system error, the function should cause the process to exit.
  */
  
-void close_chain();
+void close_chain(){
+
+}
 
 /*
  * DESCRIPTION: The function blocks and waits for close_chain to finish.
@@ -128,7 +132,9 @@ void close_chain();
  * If close_chain was not called it should return -2. In case of other error, it should return -1.
  */
 
-int return_on_close();
+int return_on_close() {
+	return 1;
+}
 
 
 

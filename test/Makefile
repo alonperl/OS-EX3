@@ -1,7 +1,7 @@
 CC=g++
 RANLIB=ranlib
 
-LIBSRC=./blockchain.cpp ./ChainBlock.cpp
+LIBSRC=./blockchain.cpp ../ChainManager.cpp ../Block.cpp
 LIBOBJ=$(LIBSRC:.cpp=.o)
 
 
@@ -22,10 +22,10 @@ TARSRCS=$(LIBSRC) Makefile README
 
 all: $(TARGETS) test
 
-$(LIBOBJ): .$(LIBSRC) .$(LIBSRC:.cpp=.h) ../hash.h
-	$(COMPILE.cc) $% $<
+$(LIBOBJ): .$(LIBSRC) .$(LIBSRC:.cpp=.h) ../hash.h ../Block.h
+	$(COMPILE.cc) ../blockchain.cpp ../ChainManager.cpp ../Block.cpp
 
-$(TARGETS): $(LIBOBJ)
+$(TARGETS): blockchain.o ChainManager.o Block.o
 	$(AR) $(ARFLAGS) $@ $^
 	$(RANLIB) $@
 
@@ -42,9 +42,9 @@ test1.o: ../blockchain.h ../hash.h ./test1.cpp
 	$(CC) -c ./test1.cpp
 	
 test1: $(TARGETS) ./test1.o
-	$(CC) ./test1.o $(TARGETS) -lhash  -lpthread -L./ -lcrypto -o blockchain
-	./blockchain
-	
+	$(CC) ./test1.o $(TARGETS) -lhash  -lpthread -L./ -lcrypto -o test1
+	./test1
+
 test: test1
 
 .PHONY: $(TARGETS) $(LIBOBJ) test test1
