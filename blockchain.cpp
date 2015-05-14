@@ -9,6 +9,8 @@
 #include <unordered_map>
 #include <list>
 
+#include "ChainManager.h"
+
 using namespace std;
 
 #define GENESIS_FATHER_ID -1
@@ -19,14 +21,8 @@ using namespace std;
 #define GENESIS_DEPTH 0
 #define FAILURE -1
 
-private boolean _closeChain;
-private boolean _isInit;
-private unsigned int _chainSize;
-private Block _genesis;
-private list<Block*> _waitingList;
-private vector<Block*> _leafs;
-private priority_queue<int, vector<int>, greater<int>> _blockNums;
-private unordered_map<unsigned int, Block*> _allBlocks;
+ChainManager* chain;
+
 
 
 /*
@@ -37,18 +33,7 @@ private unordered_map<unsigned int, Block*> _allBlocks;
  * RETURN VALUE: On success 0, otherwise -1.
  */
 int init_blockchain() {
-	_isInit = true;
-	_closeChain = false;
-	init_hash_generator();
-	this._waitingList = new linkedList<Block*>();
-	this._genesis = new Block(GENESIS_FATHER_ID, GENESIS_ID, GENESIS_DATA, GENESIS_LENGTH, GENESIS_PTR);
-	this._leafs = new vector<Block>();
-	_allBlocks[GENESIS_ID] = &newBlock;
-	_chainSize = 1;
-	_leafs.insert(&genesis);
-	for(int i = 1; i < INT_MAX; i++) {
-		_blockNums.push(i);
-	}
+	return chain->init_blockchain();
 }
 
 /*
@@ -65,23 +50,11 @@ int init_blockchain() {
 
 int add_block(char *data , size_t length) {
 
-	if(!_blockNums.empty() && _isInit) {
-		int father_id = get_father_rand_id();
-		int new_id_ = _blockNums.pop();
-		Block* newBlock = new Block(father_id, new_id, data, length, _leafs[father_id]);
- 		_waitingList.push_back(newBlock);
- 		_allBlocks[new_id] = newBlock;
- 		return new_id;
-	}
-
- 	return FAILURE;
+	return chain->add_block(data, length);
 
 }
 
-//returns arbitrary longest chains leaf id (if there is more than one).
-private int get_father_rand_id() {
-	return _leafs[(rand()%(_leafs.size())]->get_id();
-}
+
 
 /*
  * DESCRIPTION: Without blocking, enforce the policy that this block_num should be attached to the longest chain at the time of attachment of 
@@ -93,22 +66,7 @@ private int get_father_rand_id() {
  */
 
 int to_longest(int block_num) {
-	if(_isInit) {
-		if(_isInit && _allBlocks[block_num]) {
-			if(_allBlocks[block_num]->_stat == WAITING) {
-				_allBlocks[block_num]->set_to_longest();
-				return 0;
-			}
-			else if(_allBlocks[block_num]->_stat == CHAINED) {
-				return 1;
-			}
-		}
-		else if(_allBlocks[block_num] == NULL) {
-			return -2;
-		}	
-	}	
-
-	return -1;
+	return chain->to_longest(block_num);
 }
 
 /*
@@ -129,16 +87,7 @@ int attach_now(int block_num) {
  */
   
 int was_added(int block_num) {
-	if(_isInit) {
-		if(_allBlocks[block_num]) {
-			if(_allBlocks[block_num]->_stat == CHAINED) {
-				return 1;
-			}
-			return 0;
-		}
-		return -2;
-	}
-	return -1;
+
 }
 
 /*
@@ -148,9 +97,7 @@ int was_added(int block_num) {
  */
 
 int chain_size() {
-	if(_isInit) {
-		return _chainSize;
-	}
+
 	return -1;
 }
 
@@ -180,4 +127,5 @@ void close_chain();
 
 int return_on_close();
 
-#endif
+
+

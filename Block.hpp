@@ -1,7 +1,7 @@
 #ifndef _BLOCK_HPP
 #define _BLOCK_HPP
 #include <stdio.h>
-//#include "hash.h"
+#include "hash.h"
 
 class Block {
 public:
@@ -15,6 +15,7 @@ public:
 	bool _to_longest;
 	bool _isAttached;
 	unsigned int _cntSons;
+	Block() {}
 	Block(int fatherId, int blockId, char* data, int dataLength, Block* father):
 			_fatherId(fatherId),
 			_id(blockId),
@@ -36,13 +37,13 @@ public:
 		delete (_data);
 
 	}
-//	void generate_data()
-//	{
-//		char* oldData = _data;
-//		_data = generate_hash(_data, _dataLength, generate_nonce(_id,_fatherId));
-//		delete _oldData;
-////		delete _data;
-//	}
+	void generate_data()
+	{
+		char* oldData = _data;
+		_data = generate_hash(_data, _dataLength, generate_nonce(_id,_fatherId));
+		delete oldData;
+//		delete _data;
+	}
 
 	int get_id()
 	{

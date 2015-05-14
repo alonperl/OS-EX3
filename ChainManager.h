@@ -11,6 +11,7 @@
 #include <vector>
 #include <unordered_map>
 #include <queue>
+#include <pthread.h>
 
 using namespace std;
 
@@ -23,8 +24,20 @@ public:
     pthread_mutex_t _leafsMutex;
     pthread_mutex_t _waitingListMutex;
     pthread_cond_t _waitingListCond;
-
-
+    pthread_t deamonTrd;
+    static void* daemonThread(void* ptr);
+    bool _closeChain;
+    bool _isInit;
+    int _deepestDepth;
+    unsigned int _chainSize;
+    list<int> _waitingList;
+    vector<int> _leafs;
+    vector<int> _deepestLeafs;
+    priority_queue<int, vector<int>, greater<int>> _blockIds;
+    unordered_map<unsigned int, Block*> _allBlocks;
+    Block* _genesis;
+    Block* get_father_rand();
+    int getUntouchable();
     /*
     * DESCRIPTION: This function initiates the Block chain, and creates the genesis Block. The genesis Block does not hold any transaction data
     * or hash.
@@ -101,16 +114,14 @@ public:
     Block* find_min_depth();
 
 
+
+
 private:
-    bool _closeChain;
-    bool _isInit;
-    unsigned int _chainSize;
-    Block _genesis;
-    list<int> _waitingList;
-    vector<int> _leafs;
-    vector<int> _deepestLeafs;
-    priority_queue<int, vector<int>, greater<int>> _blockIds;
-    unordered_map<unsigned int, Block*> _allBlocks;
+
+
+
+
+
 
 };
 
