@@ -21,15 +21,19 @@ class ChainManager
 {
 
 public:
-    int _highestId;
+
+    pthread_mutex_t daemonMutex;
+    pthread_mutex_t generalMutex;
+    pthread_t daemonTrd;
+    pthread_cond_t waitingListCond;
+    static void* daemonThread(void* ptr);
     pthread_mutex_t _deepestLeafsMutex;
     pthread_mutex_t _leafsMutex;
     pthread_mutex_t _waitingListMutex;
     pthread_mutex_t _allBlocksMutex;
     pthread_mutex_t _blockIdsMutex;
-    pthread_cond_t _waitingListCond;
-    pthread_t _deamonTrd;
-    static void* daemonThread(void* ptr);
+
+    int _highestId;
     bool _closeChain;
     bool _isInit;
     int _deepestDepth;

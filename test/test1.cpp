@@ -66,9 +66,11 @@ int main() {
 			cout << add_block(pl, 4) << endl;
 		}
 		cout << "Block num " <<  j*IN_ITER << " should not be added yet:  " << was_added( j*IN_ITER) << endl;
-		while(chain_size() < j*IN_ITER);
+		while(chain_size() < j*IN_ITER) { 
+			// cout << "while in level " << j << endl;
+		}
 		cout << "Now it does:  " << was_added( j*IN_ITER) << endl;
-		
+
 	}
 
 	cout << "Expected chain size: " << OUT_ITER*IN_ITER << ". actual: " << chain_size() << endl;

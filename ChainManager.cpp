@@ -24,19 +24,29 @@
 #define LOCK(x) pthread_mutex_lock(x)
 #define UNLOCK(x) pthread_mutex_unlock(x)
 
-ChainManager::ChainManager(): _deamonTrd() {
-    srand(time(0));
+ChainManager::ChainManager() {
+    generalMutex = PTHREAD_MUTEX_INITIALIZER;
 
 
 
 }
 int ChainManager::init_blockchain() {
     try {
-        cout << "init block chain manager" << endl;
+//        cout << "init block chain manager" << endl;
         if(!_isInit) {
 
-
+            srand(time(0));
             init_hash_generator();
+
+            pthread_mutex_init(&daemonMutex, NULL);
+            pthread_cond_init(&waitingListCond, NULL);
+
+            pthread_mutex_init(&_waitingListMutex, NULL);
+            pthread_mutex_init(&_leafsMutex, NULL);
+            pthread_mutex_init(&_deepestLeafsMutex, NULL);
+            pthread_mutex_init(&_allBlocksMutex, NULL);
+            pthread_mutex_init(&_blockIdsMutex, NULL);
+
 //            _waitingList = new list<int>();
 
             _genesis = new Block(GENESIS_FATHER_ID, GENESIS_ID, GENESIS_DATA, GENESIS_LENGTH, GENESIS_FPTR);
@@ -59,7 +69,7 @@ int ChainManager::init_blockchain() {
             _isInit = true;
             //TODO : check if create of, else print error
 //            cout << "starting daemon" << endl;
-            pthread_create(&_deamonTrd, NULL, &daemonThread, this);
+            pthread_create(&daemonTrd, NULL, daemonThread, this);
         }
         else {
             perror("init_blockchain called twice");
@@ -76,10 +86,11 @@ int ChainManager::init_blockchain() {
 
 //returns arbitrary longest chains leaf (if there is more than one).
 Block* ChainManager::get_father_rand() {
-    return _allBlocks[_deepestLeafs[rand()%(_deepestLeafs.size())]];
+    int randIndex = rand()%(_deepestLeafs.size());
+    return _allBlocks[_deepestLeafs[randIndex]];
 }
 int ChainManager::get_new_id(){
-    pthread_mutex_lock(&_blockIdsMutex);
+    LOCK(&_blockIdsMutex);
     int newId = _highestId + 1;
     if(!_blockIds.empty()) {
         newId = _blockIds.top();
@@ -88,7 +99,7 @@ int ChainManager::get_new_id(){
     else {
         _highestId = newId;
     }
-    pthread_mutex_unlock(&_blockIdsMutex);
+    UNLOCK(&_blockIdsMutex);
     return newId;
 
 }
@@ -99,14 +110,33 @@ int ChainManager::add_block(char *data, size_t length) {
     if(_highestId < INT_MAX && _isInit) {
 
         // TODO : add mutex protection
-        Block* father = get_father_rand();
+
+
+//        if(father == NULL) PRINT("FATHER IS NULL")
+        LOCK(&_waitingListMutex);
         int new_id = get_new_id();
+
+        LOCK(&generalMutex);
+        Block* father = get_father_rand();
+        UNLOCK(&generalMutex);
+
         char* tmp = new char[length];
         memcpy(tmp, data, length);
         Block* newBlock = new Block(father->_id, new_id, tmp, length, father);
+
+
         _waitingList.push_back(newBlock->_id);
         _allBlocks[new_id] = newBlock;
-//        PRINT("add block " << new_id)
+        UNLOCK(&_waitingListMutex);
+        if(_waitingList.size() == 1) {
+            LOCK(&daemonMutex);
+            pthread_cond_signal(&waitingListCond);
+            UNLOCK(&daemonMutex);
+        }
+
+
+
+//      PRINT("add block " << new_id)
         return new_id;
     }
     return FAILURE;
@@ -114,27 +144,64 @@ int ChainManager::add_block(char *data, size_t length) {
 }
 
 int ChainManager::to_longest(int block_num) {
+    int retVal;
     if(!_isInit) return FAILURE;
+    LOCK(&_allBlocksMutex);
     unordered_map<unsigned int, Block*>::iterator findBlock = _allBlocks.find(block_num);
-    if(findBlock == _allBlocks.end()) return NOT_EXIST;
+    if(findBlock == _allBlocks.end()) retVal = NOT_EXIST;
     // handle block exist and found
     if(!findBlock->second->_isAttached) {
         findBlock->second->set_to_longest();
-        return SUCCESS;
+        retVal= SUCCESS;
     }
     else if(_allBlocks[block_num]->_isAttached) {
-        return ALREADY_CHAINED;
+        retVal= ALREADY_CHAINED;
     }
+    UNLOCK(&_allBlocksMutex);
+    return retVal;
 
+}
+/*
+ * DESCRIPTION: This function blocks all other Block attachments, until block_num is added to the chain. The block_num is the assigned value
+ * that was previously returned by add_block.
+ * RETURN VALUE: If block_num doesn't exist, return -2;
+ * In case of other errors, return -1; In case of success or if it is already attached return 0.
+ */
+int ChainManager::attach_now(int block_num) {
+    int returnVal = SUCCESS;
+    if(!_isInit) return FAILURE;
+    // TODO : CHECK IF NEED TO LOCK LEAFS
+    LOCK(&generalMutex);
+    LOCK(&_allBlocksMutex);
+    unordered_map<unsigned int, Block*>::iterator findBlock = _allBlocks.find(block_num);
+    LOCK(&_allBlocksMutex);
+    if(findBlock == _allBlocks.end()) returnVal = NOT_EXIST;
+    else if(findBlock->second->_isAttached) returnVal = SUCCESS;
+    // not yet attached
+    else {
+        LOCK(&_waitingListMutex);
+        _waitingList.remove(block_num);
+        UNLOCK(&_waitingListMutex);
+
+        chain_block(findBlock->second);
+    }
+    UNLOCK(&generalMutex);
+    return returnVal;
 }
 
 int ChainManager::was_added(int block_num) {
 
+
+    int retVal = SUCCESS;
     if(!_isInit) return FAILURE;
+
+//    LOCK(&_allBlocksMutex);
+
     unordered_map<unsigned int, Block*>::iterator findBlock = _allBlocks.find(block_num);
-    if(findBlock == _allBlocks.end()) return NOT_EXIST;
-    if(findBlock->second->_isAttached) return ALREADY_CHAINED;
-    return SUCCESS;
+    if(findBlock == _allBlocks.end()) retVal =  NOT_EXIST;
+    if(findBlock->second->_isAttached) retVal =  ALREADY_CHAINED;
+//    UNLOCK(&_allBlocksMutex);
+    return retVal;
 }
 
 int ChainManager::chain_size() {
@@ -145,18 +212,38 @@ int ChainManager::chain_size() {
 }
 
 void* ChainManager::daemonThread(void* ptr) {
+    PRINT("DAEMON STARTED")
     ChainManager* chain = (ChainManager*) ptr;
     while(!chain->_closeChain) {
-//        PRINT("while in the daemon")
-        LOCK(&chain->_waitingListMutex);
+
+//        PRINT("waiting size " << chain->_waitingList.size())
         if(!chain->_waitingList.empty()) {
+            LOCK(&chain->generalMutex);
+            LOCK(&chain->_waitingListMutex);
             LOCK(&chain->_allBlocksMutex);
+
+//            PRINT("waiting List front " << chain->_waitingList.front())
             Block* toAttach = chain->_allBlocks[chain->_waitingList.front()];
+            if(toAttach == NULL) PRINT("TO ATTACH NULL")
             UNLOCK(&chain->_allBlocksMutex);
             chain->_waitingList.pop_front();
+            UNLOCK(&chain->_waitingListMutex);
+
+
+
             chain->chain_block(toAttach);
+
+            UNLOCK(&chain->generalMutex);
+
+
         }
-        UNLOCK(&chain->_waitingListMutex);
+//        PRINT("after if !!!")
+        else {
+            LOCK(&chain->daemonMutex);
+            pthread_cond_wait(&chain->waitingListCond, &chain->daemonMutex);
+            UNLOCK(&chain->daemonMutex);
+        }
+
         //TODO : add condition wait
 
     }
@@ -165,25 +252,27 @@ void* ChainManager::daemonThread(void* ptr) {
 }
 void ChainManager::remove_leaf(int block_num)
 {
+
     _leafs.erase(remove(_leafs.begin(), _leafs.end(), block_num), _leafs.end());
+
 }
 
 int ChainManager::chain_block(Block* toChain) {
     // to longest or father is missing
+//    PRINT("TO CHAIN" << toCHAIN)
+//    PRINT("CHAIN BLOCK" << toChain->_father)
     if(toChain->_father == NULL) {
-
-        LOCK(&_allBlocksMutex);
         Block* father = get_father_rand();
-        UNLOCK(&_allBlocksMutex);
         toChain->_father = father;
         toChain->_depth = father->_depth + 1;
     }
     toChain->generate_data();
     // TODO : CHECK IF NEED TO LOCK LEAFS
-    LOCK(&_deepestLeafsMutex);
-    LOCK(&_leafsMutex);
     _chainSize++;
     toChain->_father->add_son();
+    LOCK(&_leafsMutex);
+    LOCK(&_deepestLeafsMutex);
+
     if(toChain->_depth > _deepestDepth) { // deeper depth
         _deepestLeafs.clear();
         _deepestLeafs.push_back(toChain->_id);
@@ -197,38 +286,17 @@ int ChainManager::chain_block(Block* toChain) {
     else {
         _leafs.push_back(toChain->_id);
     }
+
     if(toChain->_father->_cntSons == 1) {//removes the father only if he have one son.
+
         remove_leaf(toChain->_fatherId);
     }
-    UNLOCK(&_leafsMutex);
+
     UNLOCK(&_deepestLeafsMutex);
+    UNLOCK(&_leafsMutex);
+
     toChain->_isAttached = true;
     return SUCCESS;
-}
-/*
- * DESCRIPTION: This function blocks all other Block attachments, until block_num is added to the chain. The block_num is the assigned value
- * that was previously returned by add_block.
- * RETURN VALUE: If block_num doesn't exist, return -2;
- * In case of other errors, return -1; In case of success or if it is already attached return 0.
- */
-int ChainManager::attach_now(int block_num) {
-    int returnVal = SUCCESS;
-    if(!_isInit) return FAILURE;
-    // TODO : CHECK IF NEED TO LOCK LEAFS
-    pthread_mutex_lock(&_deepestLeafsMutex);
-    pthread_mutex_lock(&_waitingListMutex);
-    unordered_map<unsigned int, Block*>::iterator findBlock = _allBlocks.find(block_num);
-    if(findBlock == _allBlocks.end()) returnVal = NOT_EXIST;
-    else if(findBlock->second->_isAttached) returnVal = SUCCESS;
-    // not yet attached
-    else {
-        _waitingList.remove(block_num);
-        chain_block(findBlock->second);
-    }
-    pthread_mutex_unlock(&_waitingListMutex);
-    pthread_mutex_unlock(&_deepestLeafsMutex);
-
-    return returnVal;
 }
 
 // TODO : TO CHECK BEFORE CHECKING FATHER IF EXIST IN MAP
@@ -236,12 +304,14 @@ int ChainManager::getUntouchable() {
 
     Block* findBlock;
     vector<int> allDeepests;
+    LOCK(&_leafsMutex);
     for(int i = 0; i < _leafs.size(); i++) {
         findBlock = _allBlocks.find(_leafs[i])->second;
         if(findBlock->_depth == _deepestDepth) {
             allDeepests.push_back(findBlock->_id);
         }
     }
+    UNLOCK(&_leafsMutex);
     //return the longest randomized leaf
     return allDeepests[rand()%(allDeepests.size())];
 
@@ -256,11 +326,15 @@ int ChainManager::prune_chain() {
     Block* tmpBlock;
     Block* findBlock;
     vector<int> allMinDepths;
+    LOCK(&generalMutex);
+    LOCK(&_allBlocksMutex);
     int leafsSize = _leafs.size();
     int deepestId = getUntouchable();
     // to find all the leafs with min depth
     for(int i = 0; i < leafsSize; i++) {
+
         findBlock = _allBlocks.find(_leafs[i])->second;
+
         // remove all blocks till sub-root
         if(findBlock->_id != deepestId) {
 
@@ -268,7 +342,9 @@ int ChainManager::prune_chain() {
             {
                 tmpBlock = findBlock->_father;
                 tmpBlock->dcr_son();
+                LOCK(&_blockIdsMutex);
                 _blockIds.push(findBlock->_id);
+                UNLOCK(&_blockIdsMutex);
                 _allBlocks.erase(findBlock->_id);
                 findBlock = tmpBlock;
             }
@@ -276,6 +352,10 @@ int ChainManager::prune_chain() {
             leafsSize--;
 
         }
+
     }
+    UNLOCK(&_allBlocksMutex);
+    UNLOCK(&generalMutex);
+
 }
 

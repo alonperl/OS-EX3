@@ -43,8 +43,7 @@ test1.o: ../blockchain.h ../hash.h ./test1.cpp
 	
 test1: $(TARGETS) ./test1.o
 	$(CC) ./test1.o $(TARGETS) -lhash  -lpthread -L./ -lcrypto -o test1
-	./test1
-
+	
 test: test1
 
 .PHONY: $(TARGETS) $(LIBOBJ) test test1
