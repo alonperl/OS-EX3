@@ -21,6 +21,8 @@
 #define NOT_EXIST -2
 #define ALREADY_CHAINED 1
 #define NO_SONS 0
+#define LOCK(x) pthread_mutex_lock(x)
+#define UNLOCK(x) pthread_mutex_unlock(x)
 
 ChainManager::ChainManager(): _deamonTrd() {
     srand(time(0));
@@ -30,7 +32,7 @@ ChainManager::ChainManager(): _deamonTrd() {
 }
 int ChainManager::init_blockchain() {
     try {
-//        cout << "askldfjaslkdj" << endl;
+        cout << "init block chain manager" << endl;
         if(!_isInit) {
 
 
@@ -48,7 +50,7 @@ int ChainManager::init_blockchain() {
             _highestId = 0;
             _deepestLeafs.push_back(GENESIS_ID);
             _leafs.push_back(GENESIS_ID);
-            PRINT("before for");
+//            PRINT("before for");
 
 //            for(int i = 1; i < INT_; i++) {
 //                _blockIds.push(i);
@@ -56,7 +58,7 @@ int ChainManager::init_blockchain() {
             _closeChain = false;
             _isInit = true;
             //TODO : check if create of, else print error
-            cout << "starting daemon" << endl;
+//            cout << "starting daemon" << endl;
             pthread_create(&_deamonTrd, NULL, &daemonThread, this);
         }
         else {
@@ -94,7 +96,8 @@ int ChainManager::get_new_id(){
 int ChainManager::add_block(char *data, size_t length) {
     //TODO: check if chain was closed
 
-    if(!_blockIds.empty() && _isInit) {
+    if(_highestId < INT_MAX && _isInit) {
+
         // TODO : add mutex protection
         Block* father = get_father_rand();
         int new_id = get_new_id();
@@ -103,6 +106,7 @@ int ChainManager::add_block(char *data, size_t length) {
         Block* newBlock = new Block(father->_id, new_id, tmp, length, father);
         _waitingList.push_back(newBlock->_id);
         _allBlocks[new_id] = newBlock;
+//        PRINT("add block " << new_id)
         return new_id;
     }
     return FAILURE;
@@ -125,6 +129,7 @@ int ChainManager::to_longest(int block_num) {
 }
 
 int ChainManager::was_added(int block_num) {
+
     if(!_isInit) return FAILURE;
     unordered_map<unsigned int, Block*>::iterator findBlock = _allBlocks.find(block_num);
     if(findBlock == _allBlocks.end()) return NOT_EXIST;
@@ -133,22 +138,27 @@ int ChainManager::was_added(int block_num) {
 }
 
 int ChainManager::chain_size() {
+
     if(!_isInit) return FAILURE;
+//    PRINT(_chainSize)
     return _chainSize;
 }
 
 void* ChainManager::daemonThread(void* ptr) {
     ChainManager* chain = (ChainManager*) ptr;
     while(!chain->_closeChain) {
-        pthread_mutex_lock(&chain->_waitingListMutex);
-
+//        PRINT("while in the daemon")
+        LOCK(&chain->_waitingListMutex);
         if(!chain->_waitingList.empty()) {
+            LOCK(&chain->_allBlocksMutex);
             Block* toAttach = chain->_allBlocks[chain->_waitingList.front()];
+            UNLOCK(&chain->_allBlocksMutex);
             chain->_waitingList.pop_front();
             chain->chain_block(toAttach);
         }
+        UNLOCK(&chain->_waitingListMutex);
         //TODO : add condition wait
-        pthread_mutex_unlock(&chain->_waitingListMutex);
+
     }
 
 
@@ -161,13 +171,17 @@ void ChainManager::remove_leaf(int block_num)
 int ChainManager::chain_block(Block* toChain) {
     // to longest or father is missing
     if(toChain->_father == NULL) {
+
+        LOCK(&_allBlocksMutex);
         Block* father = get_father_rand();
+        UNLOCK(&_allBlocksMutex);
         toChain->_father = father;
         toChain->_depth = father->_depth + 1;
     }
     toChain->generate_data();
     // TODO : CHECK IF NEED TO LOCK LEAFS
-    pthread_mutex_lock(&_deepestLeafsMutex);
+    LOCK(&_deepestLeafsMutex);
+    LOCK(&_leafsMutex);
     _chainSize++;
     toChain->_father->add_son();
     if(toChain->_depth > _deepestDepth) { // deeper depth
@@ -186,7 +200,8 @@ int ChainManager::chain_block(Block* toChain) {
     if(toChain->_father->_cntSons == 1) {//removes the father only if he have one son.
         remove_leaf(toChain->_fatherId);
     }
-    pthread_mutex_unlock(&_deepestLeafsMutex);
+    UNLOCK(&_leafsMutex);
+    UNLOCK(&_deepestLeafsMutex);
     toChain->_isAttached = true;
     return SUCCESS;
 }

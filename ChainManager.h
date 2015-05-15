@@ -25,6 +25,7 @@ public:
     pthread_mutex_t _deepestLeafsMutex;
     pthread_mutex_t _leafsMutex;
     pthread_mutex_t _waitingListMutex;
+    pthread_mutex_t _allBlocksMutex;
     pthread_mutex_t _blockIdsMutex;
     pthread_cond_t _waitingListCond;
     pthread_t _deamonTrd;

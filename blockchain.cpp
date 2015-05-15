@@ -35,7 +35,7 @@ ChainManager chain;
 int init_blockchain() {
 //	chain = new ChainManager();
 	chain._isInit = false;
-	PRINT("init blockchain main prog")
+//	PRINT("init blockchain main prog")
 	return chain.init_blockchain();
 }
 
