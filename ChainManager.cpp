@@ -25,13 +25,13 @@
 #define UNLOCK(x) if(pthread_mutex_unlock(x) != 0){cerr << "system error: UnLock failed" <<endl; exit(1);}
 
 ChainManager::ChainManager() {
-    generalMutex = PTHREAD_MUTEX_INITIALIZER;
+
 
 
 
 }
 int ChainManager::init_blockchain() {
-
+    generalMutex = PTHREAD_MUTEX_INITIALIZER;
     try {
         LOCK(&generalMutex);
 //        cout << "init block chain manager" << endl;
@@ -192,7 +192,7 @@ int ChainManager::attach_now(int block_num) {
     LOCK(&generalMutex);
     LOCK(&_allBlocksMutex);
     unordered_map<unsigned int, Block*>::iterator findBlock = _allBlocks.find(block_num);
-    LOCK(&_allBlocksMutex);
+    UNLOCK(&_allBlocksMutex);
     if(findBlock == _allBlocks.end()) returnVal = NOT_EXIST;
     else if(findBlock->second->_isAttached) returnVal = SUCCESS;
     // not yet attached
@@ -240,7 +240,7 @@ void ChainManager::remove_deepestLeaf(int block_num)
 }
 
 void* ChainManager::daemonThread(void* ptr) {
-    PRINT("DAEMON STARTED")
+//    PRINT("DAEMON STARTED")
     ChainManager* chain = (ChainManager*) ptr;
     while(!chain->_closeChain) {
 
@@ -396,27 +396,49 @@ int ChainManager::prune_chain() {
  * In case of a system error, the function should cause the process to exit.
  */
 void ChainManager::close_chain() {
-    _isInit = false;
+    LOCK(&generalMutex);
+
     _closeChain = true;
     for(int block:_waitingList) {
         _allBlocks[block]->generate_data();
         PRINT(_allBlocks[block]->_data);
     }
+
     _allBlocks.erase(_allBlocks.begin());
+    _waitingList.clear();
     _leafs.clear();
     _deepestLeafs.clear();
+    while(!_blockIds.empty()) {
+        _blockIds.pop();
+    }
+//    pthread_mutex_destroy(&daemonMutex);
+//    pthread_cond_destroy(&waitingListCond);
+    pthread_mutex_destroy(&_waitingListMutex);
+    pthread_mutex_destroy(&_leafsMutex);
+    pthread_mutex_destroy(&_deepestLeafsMutex);
+    pthread_mutex_destroy(&_allBlocksMutex);
+    pthread_mutex_destroy(&_blockIdsMutex);
 
+    _isInit = false;
+    close_hash_generator();
+    _closeChain = false;
+    UNLOCK(&generalMutex);
 
-
+    pthread_cond_signal(&waitingListCond);
 
 }
+
 /*
 * DESCRIPTION: The function blocks and waits for close_chain to finish.
 * RETURN VALUE: If closing was successful, it returns 0.
 * If close_chain was not called it should return -2. In case of other error, it should return -1.
 */
 int ChainManager::return_on_close() {
+//    pthread_cond_wait(&waitingListCond, &daemonMutex);
+//    while(_closeChain);
 
+    if(_closeChain) return pthread_join(daemonTrd, NULL);
+    return -2;
 }
 
 

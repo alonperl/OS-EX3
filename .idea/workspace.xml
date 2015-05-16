@@ -41,8 +41,8 @@
       <file leaf-file-name="blockchain.cpp" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/blockchain.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-51.6">
-              <caret line="138" column="24" selection-start-line="138" selection-start-column="24" selection-end-line="138" selection-end-column="24" />
+            <state vertical-scroll-proportion="-26.4">
+              <caret line="136" column="34" selection-start-line="136" selection-start-column="34" selection-end-line="136" selection-end-column="34" />
               <folding />
             </state>
           </provider>
@@ -52,7 +52,7 @@
         <entry file="file://$PROJECT_DIR$/ChainManager.h">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="104" column="1" selection-start-line="104" selection-start-column="1" selection-end-line="117" selection-end-column="26" />
+              <caret line="30" column="28" selection-start-line="30" selection-start-column="28" selection-end-line="30" selection-end-column="28" />
               <folding />
             </state>
           </provider>
@@ -61,12 +61,12 @@
       <file leaf-file-name="ChainManager.cpp" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/ChainManager.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.38426453">
-              <caret line="391" column="60" selection-start-line="391" selection-start-column="60" selection-end-line="391" selection-end-column="60" />
+            <state vertical-scroll-proportion="0.36602053">
+              <caret line="193" column="19" selection-start-line="193" selection-start-column="19" selection-end-line="193" selection-end-column="19" />
               <folding>
-                <element signature="e#6511#6641#0" expanded="false" />
-                <element signature="e#6643#6808#0" expanded="false" />
-                <element signature="e#9189#9828#0" expanded="false" />
+                <element signature="e#6513#6643#0" expanded="false" />
+                <element signature="e#6645#6810#0" expanded="false" />
+                <element signature="e#9193#9832#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -96,7 +96,7 @@
         <entry file="file://$PROJECT_DIR$/Block.cpp">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="26" column="29" selection-start-line="26" selection-start-column="16" selection-end-line="26" selection-end-column="29" />
+              <caret line="23" column="9" selection-start-line="23" selection-start-column="9" selection-end-line="23" selection-end-column="21" />
               <folding />
             </state>
           </provider>
@@ -124,8 +124,8 @@
         <option value="$PROJECT_DIR$/Block.cpp" />
         <option value="$PROJECT_DIR$/CMakeLists.txt" />
         <option value="$PROJECT_DIR$/blockchain.h" />
-        <option value="$PROJECT_DIR$/blockchain.cpp" />
         <option value="$PROJECT_DIR$/ChainManager.h" />
+        <option value="$PROJECT_DIR$/blockchain.cpp" />
         <option value="$PROJECT_DIR$/ChainManager.cpp" />
       </list>
     </option>
@@ -140,7 +140,7 @@
   <component name="ProjectFrameBounds">
     <option name="x" value="5" />
     <option name="y" value="25" />
-    <option name="width" value="850" />
+    <option name="width" value="848" />
     <option name="height" value="1028" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
@@ -253,10 +253,10 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="5" y="25" width="850" height="1028" extended-state="0" />
+    <frame x="5" y="25" width="848" height="1028" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.23159145" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.23214285" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="CMake" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
@@ -307,9 +307,9 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#6511#6641#0" expanded="false" />
-            <element signature="e#6643#6808#0" expanded="false" />
-            <element signature="e#9189#9828#0" expanded="false" />
+            <element signature="e#6513#6643#0" expanded="false" />
+            <element signature="e#6645#6810#0" expanded="false" />
+            <element signature="e#9193#9832#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -389,18 +389,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/blockchain.cpp">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-51.6">
-          <caret line="138" column="24" selection-start-line="138" selection-start-column="24" selection-end-line="138" selection-end-column="24" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/ChainManager.h">
+    <entry file="file://$PROJECT_DIR$/Block.cpp">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="104" column="1" selection-start-line="104" selection-start-column="1" selection-end-line="117" selection-end-column="26" />
+          <caret line="23" column="9" selection-start-line="23" selection-start-column="9" selection-end-line="23" selection-end-column="21" />
           <folding />
         </state>
       </provider>
@@ -413,10 +405,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Block.cpp">
+    <entry file="file://$PROJECT_DIR$/blockchain.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="26" column="29" selection-start-line="26" selection-start-column="16" selection-end-line="26" selection-end-column="29" />
+        <state vertical-scroll-proportion="-26.4">
+          <caret line="136" column="34" selection-start-line="136" selection-start-column="34" selection-end-line="136" selection-end-column="34" />
           <folding />
         </state>
       </provider>
@@ -429,14 +421,22 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/ChainManager.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="30" column="28" selection-start-line="30" selection-start-column="28" selection-end-line="30" selection-end-column="28" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/ChainManager.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.38426453">
-          <caret line="391" column="60" selection-start-line="391" selection-start-column="60" selection-end-line="391" selection-end-column="60" />
+        <state vertical-scroll-proportion="0.36602053">
+          <caret line="193" column="19" selection-start-line="193" selection-start-column="19" selection-end-line="193" selection-end-column="19" />
           <folding>
-            <element signature="e#6511#6641#0" expanded="false" />
-            <element signature="e#6643#6808#0" expanded="false" />
-            <element signature="e#9189#9828#0" expanded="false" />
+            <element signature="e#6513#6643#0" expanded="false" />
+            <element signature="e#6645#6810#0" expanded="false" />
+            <element signature="e#9193#9832#0" expanded="false" />
           </folding>
         </state>
       </provider>

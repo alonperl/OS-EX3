@@ -123,6 +123,7 @@ int chain_size() {
  */
  
 void close_chain(){
+	chain.close_chain();
 
 }
 
@@ -133,7 +134,7 @@ void close_chain(){
  */
 
 int return_on_close() {
-	return 1;
+	return chain.return_on_close();
 }
 
 //void printCurChain() {
