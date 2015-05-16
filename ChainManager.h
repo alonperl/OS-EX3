@@ -123,6 +123,8 @@ public:
 
     Block* find_min_depth();
 
+    void remove_deepestLeaf(int block_num);
+
 
 
 

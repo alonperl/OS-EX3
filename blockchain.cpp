@@ -136,5 +136,9 @@ int return_on_close() {
 	return 1;
 }
 
+//void printCurChain() {
+//	chain.printCurChain();
+//}
+
 
 

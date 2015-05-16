@@ -95,4 +95,6 @@ void close_chain();
 
 int return_on_close();
 
+void printCurChain();
+
 #endif

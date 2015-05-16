@@ -21,8 +21,8 @@
 #define NOT_EXIST -2
 #define ALREADY_CHAINED 1
 #define NO_SONS 0
-#define LOCK(x) pthread_mutex_lock(x)
-#define UNLOCK(x) pthread_mutex_unlock(x)
+#define LOCK(x)  if(pthread_mutex_lock(x) == EINVAL){cerr << "system error: Lock failed"<<endl; exit(1); }
+#define UNLOCK(x) if(pthread_mutex_unlock(x) != 0){cerr << "system error: UnLock failed" <<endl; exit(1);}
 
 ChainManager::ChainManager() {
     generalMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -31,7 +31,9 @@ ChainManager::ChainManager() {
 
 }
 int ChainManager::init_blockchain() {
+
     try {
+        LOCK(&generalMutex);
 //        cout << "init block chain manager" << endl;
         if(!_isInit) {
 
@@ -54,6 +56,7 @@ int ChainManager::init_blockchain() {
 //            this._deepestLeafs = new vector<int>();
 //            this->_leafs = new vector<int>();
 //            this->_blockIds = new  priority_queue<int, vector<int>, greater<int>>();
+
             _allBlocks[GENESIS_ID] = _genesis;
             _chainSize = 0;
             _deepestDepth = 0;
@@ -66,27 +69,38 @@ int ChainManager::init_blockchain() {
 //                _blockIds.push(i);
 //            }
             _closeChain = false;
-            _isInit = true;
+
             //TODO : check if create of, else print error
 //            cout << "starting daemon" << endl;
+
+            _isInit = true;
+            UNLOCK(&generalMutex);
             pthread_create(&daemonTrd, NULL, daemonThread, this);
+
         }
         else {
             perror("init_blockchain called twice");
+            UNLOCK(&generalMutex);
             return FAILURE;
         }
 
     }
     catch(exception& e) {
         cout<<"INIT EXCEPTION" << endl;
+        UNLOCK(&generalMutex);
         return FAILURE;
     }
+
     return SUCCESS;
 }
 
 //returns arbitrary longest chains leaf (if there is more than one).
 Block* ChainManager::get_father_rand() {
     int randIndex = rand()%(_deepestLeafs.size());
+//    PRINT(randIndex);
+//    for(int i = 0; i< _deepestLeafs.size(); i++)
+//        cout << _deepestLeafs[i] <<" --> ";
+//    cout << endl;
     return _allBlocks[_deepestLeafs[randIndex]];
 }
 int ChainManager::get_new_id(){
@@ -108,17 +122,19 @@ int ChainManager::add_block(char *data, size_t length) {
     //TODO: check if chain was closed
 
     if(_highestId < INT_MAX && _isInit) {
-
+        LOCK(&generalMutex);
+//        PRINT("sdasd");
         // TODO : add mutex protection
 
 
 //        if(father == NULL) PRINT("FATHER IS NULL")
         LOCK(&_waitingListMutex);
+        LOCK(&_allBlocksMutex);
         int new_id = get_new_id();
 
-        LOCK(&generalMutex);
+//        LOCK(&generalMutex);
         Block* father = get_father_rand();
-        UNLOCK(&generalMutex);
+//        UNLOCK(&generalMutex);
 
         char* tmp = new char[length];
         memcpy(tmp, data, length);
@@ -127,6 +143,7 @@ int ChainManager::add_block(char *data, size_t length) {
 
         _waitingList.push_back(newBlock->_id);
         _allBlocks[new_id] = newBlock;
+        UNLOCK(&_allBlocksMutex);
         UNLOCK(&_waitingListMutex);
         if(_waitingList.size() == 1) {
             LOCK(&daemonMutex);
@@ -137,6 +154,7 @@ int ChainManager::add_block(char *data, size_t length) {
 
 
 //      PRINT("add block " << new_id)
+        UNLOCK(&generalMutex);
         return new_id;
     }
     return FAILURE;
@@ -211,6 +229,16 @@ int ChainManager::chain_size() {
     return _chainSize;
 }
 
+void ChainManager::remove_leaf(int block_num)
+{
+    _leafs.erase(remove(_leafs.begin(), _leafs.end(), block_num), _leafs.end());
+}
+
+void ChainManager::remove_deepestLeaf(int block_num)
+{
+    _deepestLeafs.erase(remove(_deepestLeafs.begin(), _deepestLeafs.end(), block_num), _deepestLeafs.end());
+}
+
 void* ChainManager::daemonThread(void* ptr) {
     PRINT("DAEMON STARTED")
     ChainManager* chain = (ChainManager*) ptr;
@@ -218,7 +246,7 @@ void* ChainManager::daemonThread(void* ptr) {
 
 //        PRINT("waiting size " << chain->_waitingList.size())
         if(!chain->_waitingList.empty()) {
-            LOCK(&chain->generalMutex);
+
             LOCK(&chain->_waitingListMutex);
             LOCK(&chain->_allBlocksMutex);
 
@@ -228,34 +256,23 @@ void* ChainManager::daemonThread(void* ptr) {
             UNLOCK(&chain->_allBlocksMutex);
             chain->_waitingList.pop_front();
             UNLOCK(&chain->_waitingListMutex);
-
-
-
+//            PRINT("before daemon general lock");
+            LOCK(&chain->generalMutex);
             chain->chain_block(toAttach);
-
             UNLOCK(&chain->generalMutex);
-
-
         }
 //        PRINT("after if !!!")
         else {
-            LOCK(&chain->daemonMutex);
+//            LOCK(&chain->daemonMutex);
             pthread_cond_wait(&chain->waitingListCond, &chain->daemonMutex);
-            UNLOCK(&chain->daemonMutex);
+//            UNLOCK(&chain->daemonMutex);
         }
-
         //TODO : add condition wait
 
     }
-
-
+    return NULL;
 }
-void ChainManager::remove_leaf(int block_num)
-{
 
-    _leafs.erase(remove(_leafs.begin(), _leafs.end(), block_num), _leafs.end());
-
-}
 
 int ChainManager::chain_block(Block* toChain) {
     // to longest or father is missing
@@ -268,7 +285,7 @@ int ChainManager::chain_block(Block* toChain) {
     }
     toChain->generate_data();
     // TODO : CHECK IF NEED TO LOCK LEAFS
-    _chainSize++;
+
     toChain->_father->add_son();
     LOCK(&_leafsMutex);
     LOCK(&_deepestLeafsMutex);
@@ -288,32 +305,33 @@ int ChainManager::chain_block(Block* toChain) {
     }
 
     if(toChain->_father->_cntSons == 1) {//removes the father only if he have one son.
-
         remove_leaf(toChain->_fatherId);
     }
-
+    _chainSize++;
+    toChain->_isAttached = true;
     UNLOCK(&_deepestLeafsMutex);
     UNLOCK(&_leafsMutex);
 
-    toChain->_isAttached = true;
+
     return SUCCESS;
 }
 
 // TODO : TO CHECK BEFORE CHECKING FATHER IF EXIST IN MAP
 int ChainManager::getUntouchable() {
 
-    Block* findBlock;
-    vector<int> allDeepests;
-    LOCK(&_leafsMutex);
-    for(int i = 0; i < _leafs.size(); i++) {
-        findBlock = _allBlocks.find(_leafs[i])->second;
-        if(findBlock->_depth == _deepestDepth) {
-            allDeepests.push_back(findBlock->_id);
-        }
-    }
-    UNLOCK(&_leafsMutex);
-    //return the longest randomized leaf
-    return allDeepests[rand()%(allDeepests.size())];
+//    Block* findBlock;
+//    vector<int> allDeepests;
+//    LOCK(&_leafsMutex);
+//    for(unsigned int i = 0; i < _deepestLeafs.size(); i++) {
+//        findBlock = _allBlocks.find(_leafs[i])->second;
+//        if(findBlock->_depth == _deepestDepth) {
+//            allDeepests.push_back(findBlock->_id);
+//        }
+//    }
+//    UNLOCK(&_leafsMutex);
+//    //return the longest randomized leaf
+//    //PRINT("longest randomized leaf " << allDeepests[rand()%(allDeepests.size())]);
+    return _deepestLeafs[rand()%(_deepestLeafs.size())];
 
 }
 
@@ -323,13 +341,16 @@ int ChainManager::getUntouchable() {
 * RETURN VALUE: On success 0, otherwise -1.
 */
 int ChainManager::prune_chain() {
+    // TODO :: to check when return -1
     Block* tmpBlock;
     Block* findBlock;
     vector<int> allMinDepths;
     LOCK(&generalMutex);
     LOCK(&_allBlocksMutex);
     int leafsSize = _leafs.size();
-    int deepestId = getUntouchable();
+    LOCK(&_deepestLeafsMutex);
+    int deepestId = _deepestLeafs[rand()%(_deepestLeafs.size())];
+    UNLOCK(&_deepestLeafsMutex);
     // to find all the leafs with min depth
     for(int i = 0; i < leafsSize; i++) {
 
@@ -340,14 +361,22 @@ int ChainManager::prune_chain() {
 
             while(findBlock->_id != GENESIS_ID && findBlock->_cntSons == NO_SONS)
             {
+                //print block id of block that erasing now.
+//                PRINT("prune: erasing block id  " << findBlock->_id);
+//                PRINT("fathers block id  " << findBlock->_fatherId);
                 tmpBlock = findBlock->_father;
+//                //sons before dcr_son()
+//                PRINT(findBlock->_father->_cntSons);
                 tmpBlock->dcr_son();
+//                //sons after dcr_son()
+//                PRINT(findBlock->_father->_cntSons);
                 LOCK(&_blockIdsMutex);
                 _blockIds.push(findBlock->_id);
                 UNLOCK(&_blockIdsMutex);
                 _allBlocks.erase(findBlock->_id);
                 findBlock = tmpBlock;
             }
+            remove_deepestLeaf(_leafs[i]);
             remove_leaf(_leafs[i]);
             leafsSize--;
 
@@ -356,6 +385,50 @@ int ChainManager::prune_chain() {
     }
     UNLOCK(&_allBlocksMutex);
     UNLOCK(&generalMutex);
+    return SUCCESS;
+}
+
+/*
+ * DESCRIPTION: Close the recent blockchain and reset the system, so that it is possible to call init_blockchain again. Non-blocking.
+ * All pending Blocks should be hashed and printed to terminal (stdout).
+ * Calls to library methods which try to alter the state of the Blockchain are prohibited while closing the Blockchain.
+ * e.g.: Calling chain_size() is ok, a call to prune_chain() should fail.
+ * In case of a system error, the function should cause the process to exit.
+ */
+void ChainManager::close_chain() {
+    _isInit = false;
+    _closeChain = true;
+    for(int block:_waitingList) {
+        _allBlocks[block]->generate_data();
+        PRINT(_allBlocks[block]->_data);
+    }
+    _allBlocks.erase(_allBlocks.begin());
+    _leafs.clear();
+    _deepestLeafs.clear();
+
+
+
 
 }
+/*
+* DESCRIPTION: The function blocks and waits for close_chain to finish.
+* RETURN VALUE: If closing was successful, it returns 0.
+* If close_chain was not called it should return -2. In case of other error, it should return -1.
+*/
+int ChainManager::return_on_close() {
+
+}
+
+
+
+//void ChainManager::printCurChain(){
+////    for(int i = 0; i < _leafs.size(); i++) {
+////        Block*  curBlock = _allBlocks.find(_leafs[i])->second;
+////        while(curBlock->_id != 0) {
+////            cout << curBlock->_id << " --> " ;
+////            curBlock = curBlock->_father;
+////        }
+////        cout << endl;
+////    }
+//}
 
