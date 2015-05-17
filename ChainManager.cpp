@@ -12,8 +12,8 @@
 //#include <pthread.h>
 #define GENESIS_FATHER_ID -1
 #define GENESIS_ID 0
-#define GENESIS_LENGTH 0
-#define GENESIS_DATA NULL
+#define GENESIS_LENGTH 8
+#define GENESIS_DATA (char*)"genesis"
 #define GENESIS_FPTR NULL
 #define GENESIS_DEPTH 0
 #define FAILURE -1
@@ -33,8 +33,9 @@ ChainManager::ChainManager() {
 int ChainManager::init_blockchain() {
     generalMutex = PTHREAD_MUTEX_INITIALIZER;
     try {
+        cout << "before init block chain manager" << endl;
         LOCK(&generalMutex);
-//        cout << "init block chain manager" << endl;
+        cout << "init block chain manager" << endl;
         if(!_isInit) {
 
             srand(time(0));
@@ -120,9 +121,9 @@ int ChainManager::get_new_id(){
 
 int ChainManager::add_block(char *data, size_t length) {
     //TODO: check if chain was closed
-
+//    LOCK(&generalMutex);
     if(_highestId < INT_MAX && _isInit) {
-        LOCK(&generalMutex);
+//        LOCK(&generalMutex);
 //        PRINT("sdasd");
         // TODO : add mutex protection
 
@@ -131,16 +132,12 @@ int ChainManager::add_block(char *data, size_t length) {
         LOCK(&_waitingListMutex);
         LOCK(&_allBlocksMutex);
         int new_id = get_new_id();
-
 //        LOCK(&generalMutex);
+//        LOCK(&_deepestLeafsMutex);
         Block* father = get_father_rand();
+//        UNLOCK(&_deepestLeafsMutex);
 //        UNLOCK(&generalMutex);
-
-        char* tmp = new char[length];
-        memcpy(tmp, data, length);
-        Block* newBlock = new Block(father->_id, new_id, tmp, length, father);
-
-
+        Block* newBlock = new Block(father->_id, new_id, data, length, father);
         _waitingList.push_back(newBlock->_id);
         _allBlocks[new_id] = newBlock;
         UNLOCK(&_allBlocksMutex);
@@ -150,13 +147,11 @@ int ChainManager::add_block(char *data, size_t length) {
             pthread_cond_signal(&waitingListCond);
             UNLOCK(&daemonMutex);
         }
-
-
-
 //      PRINT("add block " << new_id)
-        UNLOCK(&generalMutex);
+//        UNLOCK(&generalMutex);
         return new_id;
     }
+//    UNLOCK(&generalMutex);
     return FAILURE;
 
 }
@@ -245,7 +240,14 @@ void* ChainManager::daemonThread(void* ptr) {
     while(!chain->_closeChain) {
 
 //        PRINT("waiting size " << chain->_waitingList.size())
-        if(!chain->_waitingList.empty()) {
+        if(chain->_waitingList.empty()) {
+//            LOCK(&chain->daemonMutex);
+            if(pthread_cond_wait(&chain->waitingListCond, &chain->daemonMutex))
+            {PRINT("ERROR WAIT");
+                exit(FAILURE);   }//            UNLOCK(&chain->daemonMutex);
+        }
+//        PRINT("after if !!!")
+        else {
 
             LOCK(&chain->_waitingListMutex);
             LOCK(&chain->_allBlocksMutex);
@@ -261,15 +263,10 @@ void* ChainManager::daemonThread(void* ptr) {
             chain->chain_block(toAttach);
             UNLOCK(&chain->generalMutex);
         }
-//        PRINT("after if !!!")
-        else {
-//            LOCK(&chain->daemonMutex);
-            pthread_cond_wait(&chain->waitingListCond, &chain->daemonMutex);
-//            UNLOCK(&chain->daemonMutex);
-        }
         //TODO : add condition wait
 
     }
+    pthread_exit(NULL);
     return NULL;
 }
 
@@ -279,7 +276,9 @@ int ChainManager::chain_block(Block* toChain) {
 //    PRINT("TO CHAIN" << toCHAIN)
 //    PRINT("CHAIN BLOCK" << toChain->_father)
     if(toChain->_father == NULL) {
+//        LOCK(&_deepestLeafsMutex);
         Block* father = get_father_rand();
+//        UNLOCK(&_deepestLeafsMutex);
         toChain->_father = father;
         toChain->_depth = father->_depth + 1;
     }
@@ -396,36 +395,58 @@ int ChainManager::prune_chain() {
  * In case of a system error, the function should cause the process to exit.
  */
 void ChainManager::close_chain() {
-    LOCK(&generalMutex);
-
     _closeChain = true;
-    for(int block:_waitingList) {
-        _allBlocks[block]->generate_data();
-        PRINT(_allBlocks[block]->_data);
-    }
-
-    _allBlocks.erase(_allBlocks.begin());
-    _waitingList.clear();
-    _leafs.clear();
-    _deepestLeafs.clear();
-    while(!_blockIds.empty()) {
-        _blockIds.pop();
-    }
-//    pthread_mutex_destroy(&daemonMutex);
-//    pthread_cond_destroy(&waitingListCond);
-    pthread_mutex_destroy(&_waitingListMutex);
-    pthread_mutex_destroy(&_leafsMutex);
-    pthread_mutex_destroy(&_deepestLeafsMutex);
-    pthread_mutex_destroy(&_allBlocksMutex);
-    pthread_mutex_destroy(&_blockIdsMutex);
-
-    _isInit = false;
-    close_hash_generator();
+    pthread_create(&closingTrd, NULL, close_chain_helper, this);
     _closeChain = false;
-    UNLOCK(&generalMutex);
+//    pthread_cond_signal(&waitingListCond);
 
-    pthread_cond_signal(&waitingListCond);
+}
 
+void* ChainManager::close_chain_helper(void* ptr) {
+    ChainManager* chain = (ChainManager*) ptr;
+    LOCK(&chain->generalMutex);
+//    LOCK(&chain->_allBlocksMutex);
+//    LOCK(&chain->_leafsMutex);
+//    LOCK(&chain->_blockIdsMutex);
+//    LOCK(&chain->_allBlocksMutex);
+//    LOCK(&chain->_deepestLeafsMutex);
+
+    for(int block:chain->_waitingList) {
+//        PRINT(block);
+        chain->_allBlocks[block]->generate_data();
+        PRINT(chain->_allBlocks[block]->_data);
+    }
+
+    chain->_allBlocks.erase(chain->_allBlocks.begin());
+    chain->_waitingList.clear();
+    chain->_leafs.clear();
+    chain->_deepestLeafs.clear();
+    while(!chain->_blockIds.empty()) {
+        chain->_blockIds.pop();
+    }
+
+
+
+    chain->_isInit = false;
+    close_hash_generator();
+
+
+
+//    UNLOCK(&chain->_deepestLeafsMutex);
+//    UNLOCK(&chain->_allBlocksMutex);
+//    UNLOCK(&chain->_blockIdsMutex);
+//    UNLOCK(&chain->_leafsMutex);
+//    UNLOCK(&chain->_allBlocksMutex);
+
+    pthread_mutex_destroy(&chain->_waitingListMutex);
+    pthread_mutex_destroy(&chain->_leafsMutex);
+    pthread_mutex_destroy(&chain->_deepestLeafsMutex);
+    pthread_mutex_destroy(&chain->_allBlocksMutex);
+    pthread_mutex_destroy(&chain->_blockIdsMutex);
+    pthread_mutex_destroy(&chain->daemonMutex);
+    pthread_cond_destroy(&chain->waitingListCond);
+    UNLOCK(&chain->generalMutex);
+    pthread_exit(NULL);
 }
 
 /*
@@ -437,7 +458,7 @@ int ChainManager::return_on_close() {
 //    pthread_cond_wait(&waitingListCond, &daemonMutex);
 //    while(_closeChain);
 
-    if(_closeChain) return pthread_join(daemonTrd, NULL);
+    if(_closeChain) return pthread_join(closingTrd, NULL);
     return -2;
 }
 

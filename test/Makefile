@@ -30,6 +30,7 @@ $(TARGETS): blockchain.o ChainManager.o Block.o
 	$(RANLIB) $@
 
 clean:
+	find . -type f | xargs -n 5 touch
 	$(RM) $(TARGETS) $(OSMLIB) $(OBJ) $(LIBOBJ) *~ *core
 
 depend:

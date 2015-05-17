@@ -25,6 +25,7 @@ public:
     pthread_mutex_t daemonMutex;
     pthread_mutex_t generalMutex;
     pthread_t daemonTrd;
+    pthread_t closingTrd;
     pthread_cond_t waitingListCond;
     static void* daemonThread(void* ptr);
     pthread_mutex_t _deepestLeafsMutex;
@@ -124,6 +125,8 @@ public:
     Block* find_min_depth();
 
     void remove_deepestLeaf(int block_num);
+
+    static void* close_chain_helper(void* ptr);
 
 
 
