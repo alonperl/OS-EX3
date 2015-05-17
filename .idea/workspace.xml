@@ -48,21 +48,21 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="ChainManager.h" pinned="false" current-in-tab="false">
+      <file leaf-file-name="ChainManager.h" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/ChainManager.h">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="41" column="16" selection-start-line="41" selection-start-column="16" selection-end-line="41" selection-end-column="16" />
+            <state vertical-scroll-proportion="0.5477707">
+              <caret line="50" column="21" selection-start-line="50" selection-start-column="21" selection-end-line="50" selection-end-column="21" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="ChainManager.cpp" pinned="false" current-in-tab="true">
+      <file leaf-file-name="ChainManager.cpp" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/ChainManager.cpp">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.8038549">
-              <caret line="326" column="52" selection-start-line="326" selection-start-column="52" selection-end-line="326" selection-end-column="52" />
+            <state vertical-scroll-proportion="26.535715">
+              <caret line="357" column="22" selection-start-line="357" selection-start-column="10" selection-end-line="357" selection-end-column="22" />
               <folding />
             </state>
           </provider>
@@ -72,7 +72,7 @@
         <entry file="file://$PROJECT_DIR$/test/hash.h">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="50" column="3" selection-start-line="50" selection-start-column="3" selection-end-line="50" selection-end-column="3" />
+              <caret line="34" column="3" selection-start-line="34" selection-start-column="3" selection-end-line="34" selection-end-column="3" />
               <folding />
             </state>
           </provider>
@@ -82,7 +82,7 @@
         <entry file="file://$PROJECT_DIR$/blockchain.h">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="97" column="21" selection-start-line="97" selection-start-column="21" selection-end-line="97" selection-end-column="21" />
+              <caret line="67" column="3" selection-start-line="67" selection-start-column="3" selection-end-line="67" selection-end-column="3" />
               <folding />
             </state>
           </provider>
@@ -92,7 +92,7 @@
         <entry file="file://$PROJECT_DIR$/Block.cpp">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="35" column="64" selection-start-line="35" selection-start-column="64" selection-end-line="35" selection-end-column="64" />
+              <caret line="23" column="42" selection-start-line="23" selection-start-column="42" selection-end-line="23" selection-end-column="42" />
               <folding />
             </state>
           </provider>
@@ -120,8 +120,8 @@
         <option value="$PROJECT_DIR$/CMakeLists.txt" />
         <option value="$PROJECT_DIR$/blockchain.h" />
         <option value="$PROJECT_DIR$/blockchain.cpp" />
-        <option value="$PROJECT_DIR$/ChainManager.h" />
         <option value="$PROJECT_DIR$/Block.cpp" />
+        <option value="$PROJECT_DIR$/ChainManager.h" />
         <option value="$PROJECT_DIR$/ChainManager.cpp" />
       </list>
     </option>
@@ -254,7 +254,7 @@
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.21405049" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="CMake" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.13340448" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
@@ -276,7 +276,7 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <option name="time" value="4" />
+      <option name="time" value="7" />
     </breakpoint-manager>
     <watches-manager />
   </component>
@@ -444,10 +444,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/blockchain.h">
+    <entry file="file://$PROJECT_DIR$/ChainManager.cpp">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="97" column="21" selection-start-line="97" selection-start-column="21" selection-end-line="97" selection-end-column="21" />
+        <state vertical-scroll-proportion="26.535715">
+          <caret line="357" column="22" selection-start-line="357" selection-start-column="10" selection-end-line="357" selection-end-column="22" />
           <folding />
         </state>
       </provider>
@@ -455,15 +455,15 @@
     <entry file="file://$PROJECT_DIR$/test/hash.h">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="50" column="3" selection-start-line="50" selection-start-column="3" selection-end-line="50" selection-end-column="3" />
+          <caret line="34" column="3" selection-start-line="34" selection-start-column="3" selection-end-line="34" selection-end-column="3" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ChainManager.h">
+    <entry file="file://$PROJECT_DIR$/blockchain.h">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="41" column="16" selection-start-line="41" selection-start-column="16" selection-end-line="41" selection-end-column="16" />
+          <caret line="67" column="3" selection-start-line="67" selection-start-column="3" selection-end-line="67" selection-end-column="3" />
           <folding />
         </state>
       </provider>
@@ -471,15 +471,15 @@
     <entry file="file://$PROJECT_DIR$/Block.cpp">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="35" column="64" selection-start-line="35" selection-start-column="64" selection-end-line="35" selection-end-column="64" />
+          <caret line="23" column="42" selection-start-line="23" selection-start-column="42" selection-end-line="23" selection-end-column="42" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ChainManager.cpp">
+    <entry file="file://$PROJECT_DIR$/ChainManager.h">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.8038549">
-          <caret line="326" column="52" selection-start-line="326" selection-start-column="52" selection-end-line="326" selection-end-column="52" />
+        <state vertical-scroll-proportion="0.5477707">
+          <caret line="50" column="21" selection-start-line="50" selection-start-column="21" selection-end-line="50" selection-end-column="21" />
           <folding />
         </state>
       </provider>

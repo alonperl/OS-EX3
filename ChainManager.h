@@ -16,17 +16,18 @@
 #define PRINT(x) cout<<x<<endl;
 
 using namespace std;
-
+enum  Status { INITIALIZED, CLOSING, CLOSED};
 class ChainManager
 {
 
 public:
-
+    Status _chainStatus;
     pthread_mutex_t daemonMutex;
     pthread_mutex_t generalMutex;
     pthread_t daemonTrd;
     pthread_t closingTrd;
     pthread_cond_t waitingListCond;
+    pthread_cond_t pruneCloseCond;
     static void* daemonThread(void* ptr);
     pthread_mutex_t _deepestLeafsMutex;
     pthread_mutex_t _leafsMutex;

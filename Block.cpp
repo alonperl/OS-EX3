@@ -28,6 +28,7 @@ using namespace std;
     Block::~Block(){
         if(_data) free (_data);
 
+
     }
     void Block::generate_data()
     {

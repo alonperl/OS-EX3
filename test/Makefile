@@ -50,5 +50,5 @@ test: test1
 .PHONY: $(TARGETS) $(LIBOBJ) test test1
 
 val: 
-	valgrind --tool=memcheck --leak-check=full ./blockchain 
+	valgrind --tool=memcheck --leak-check=full test1 
 

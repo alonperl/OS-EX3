@@ -25,25 +25,22 @@
 #define UNLOCK(x) if(pthread_mutex_unlock(x) != 0){cerr << "system error: UnLock failed" <<endl; exit(1);}
 
 ChainManager::ChainManager() {
-
-
-
-
+    _chainStatus = CLOSED;
 }
 int ChainManager::init_blockchain() {
     generalMutex = PTHREAD_MUTEX_INITIALIZER;
     try {
-        cout << "before init block chain manager" << endl;
-        LOCK(&generalMutex);
-        cout << "init block chain manager" << endl;
-        if(!_isInit) {
+//        cout << "before init block chain manager" << endl;
 
+//        cout << "init block chain manager" << endl;
+        if(_chainStatus == CLOSED) {
+            LOCK(&generalMutex);
             srand(time(0));
             init_hash_generator();
 
             pthread_mutex_init(&daemonMutex, NULL);
             pthread_cond_init(&waitingListCond, NULL);
-
+            pthread_cond_init(&pruneCloseCond, NULL);
             pthread_mutex_init(&_waitingListMutex, NULL);
             pthread_mutex_init(&_leafsMutex, NULL);
             pthread_mutex_init(&_deepestLeafsMutex, NULL);
@@ -57,31 +54,26 @@ int ChainManager::init_blockchain() {
 //            this._deepestLeafs = new vector<int>();
 //            this->_leafs = new vector<int>();
 //            this->_blockIds = new  priority_queue<int, vector<int>, greater<int>>();
-
+            LOCK(&_allBlocksMutex);
             _allBlocks[GENESIS_ID] = _genesis;
+            UNLOCK(&_allBlocksMutex);
             _chainSize = 0;
             _deepestDepth = 0;
             _highestId = 0;
+            LOCK(&_deepestLeafsMutex);
             _deepestLeafs.push_back(GENESIS_ID);
+            UNLOCK(&_deepestLeafsMutex);
+            LOCK(&_leafsMutex);
             _leafs.push_back(GENESIS_ID);
-//            PRINT("before for");
-
-//            for(int i = 1; i < INT_; i++) {
-//                _blockIds.push(i);
-//            }
-            _closeChain = false;
-
-            //TODO : check if create of, else print error
-//            cout << "starting daemon" << endl;
-
-            _isInit = true;
+            UNLOCK(&_leafsMutex);
+            _chainStatus = INITIALIZED;
             UNLOCK(&generalMutex);
             pthread_create(&daemonTrd, NULL, daemonThread, this);
+
 
         }
         else {
             perror("init_blockchain called twice");
-            UNLOCK(&generalMutex);
             return FAILURE;
         }
 
@@ -97,12 +89,18 @@ int ChainManager::init_blockchain() {
 
 //returns arbitrary longest chains leaf (if there is more than one).
 Block* ChainManager::get_father_rand() {
+    LOCK(&_deepestLeafsMutex);
     int randIndex = rand()%(_deepestLeafs.size());
+    UNLOCK(&_deepestLeafsMutex);
 //    PRINT(randIndex);
 //    for(int i = 0; i< _deepestLeafs.size(); i++)
 //        cout << _deepestLeafs[i] <<" --> ";
 //    cout << endl;
-    return _allBlocks[_deepestLeafs[randIndex]];
+    LOCK(&_allBlocksMutex);
+    Block* tmp = _allBlocks[_deepestLeafs[randIndex]];
+    UNLOCK(&_allBlocksMutex);
+    return tmp;
+
 }
 int ChainManager::get_new_id(){
     LOCK(&_blockIdsMutex);
@@ -121,16 +119,14 @@ int ChainManager::get_new_id(){
 
 int ChainManager::add_block(char *data, size_t length) {
     //TODO: check if chain was closed
-//    LOCK(&generalMutex);
-    if(_highestId < INT_MAX && _isInit) {
+    if(_highestId < INT_MAX && _chainStatus == INITIALIZED) {
 //        LOCK(&generalMutex);
 //        PRINT("sdasd");
         // TODO : add mutex protection
 
 
 //        if(father == NULL) PRINT("FATHER IS NULL")
-        LOCK(&_waitingListMutex);
-        LOCK(&_allBlocksMutex);
+
         int new_id = get_new_id();
 //        LOCK(&generalMutex);
 //        LOCK(&_deepestLeafsMutex);
@@ -138,15 +134,16 @@ int ChainManager::add_block(char *data, size_t length) {
 //        UNLOCK(&_deepestLeafsMutex);
 //        UNLOCK(&generalMutex);
         Block* newBlock = new Block(father->_id, new_id, data, length, father);
+        LOCK(&_waitingListMutex);
         _waitingList.push_back(newBlock->_id);
+        UNLOCK(&_waitingListMutex);
+        LOCK(&_allBlocksMutex);
         _allBlocks[new_id] = newBlock;
         UNLOCK(&_allBlocksMutex);
-        UNLOCK(&_waitingListMutex);
-        if(_waitingList.size() == 1) {
-            LOCK(&daemonMutex);
-            pthread_cond_signal(&waitingListCond);
-            UNLOCK(&daemonMutex);
-        }
+
+        LOCK(&daemonMutex);
+        pthread_cond_signal(&waitingListCond);
+        UNLOCK(&daemonMutex);
 //      PRINT("add block " << new_id)
 //        UNLOCK(&generalMutex);
         return new_id;
@@ -158,7 +155,7 @@ int ChainManager::add_block(char *data, size_t length) {
 
 int ChainManager::to_longest(int block_num) {
     int retVal;
-    if(!_isInit) return FAILURE;
+    if(_chainStatus != INITIALIZED) return FAILURE;
     LOCK(&_allBlocksMutex);
     unordered_map<unsigned int, Block*>::iterator findBlock = _allBlocks.find(block_num);
     if(findBlock == _allBlocks.end()) retVal = NOT_EXIST;
@@ -182,9 +179,9 @@ int ChainManager::to_longest(int block_num) {
  */
 int ChainManager::attach_now(int block_num) {
     int returnVal = SUCCESS;
-    if(!_isInit) return FAILURE;
+    if(_chainStatus !=  INITIALIZED) return FAILURE;
     // TODO : CHECK IF NEED TO LOCK LEAFS
-    LOCK(&generalMutex);
+
     LOCK(&_allBlocksMutex);
     unordered_map<unsigned int, Block*>::iterator findBlock = _allBlocks.find(block_num);
     UNLOCK(&_allBlocksMutex);
@@ -195,10 +192,11 @@ int ChainManager::attach_now(int block_num) {
         LOCK(&_waitingListMutex);
         _waitingList.remove(block_num);
         UNLOCK(&_waitingListMutex);
-
+        LOCK(&generalMutex);
         chain_block(findBlock->second);
+        UNLOCK(&generalMutex);
     }
-    UNLOCK(&generalMutex);
+
     return returnVal;
 }
 
@@ -206,11 +204,12 @@ int ChainManager::was_added(int block_num) {
 
 
     int retVal = SUCCESS;
-    if(!_isInit) return FAILURE;
+    if(_chainStatus != INITIALIZED) return FAILURE;
 
 //    LOCK(&_allBlocksMutex);
-
+    LOCK(&_allBlocksMutex);
     unordered_map<unsigned int, Block*>::iterator findBlock = _allBlocks.find(block_num);
+    UNLOCK(&_allBlocksMutex);
     if(findBlock == _allBlocks.end()) retVal =  NOT_EXIST;
     if(findBlock->second->_isAttached) retVal =  ALREADY_CHAINED;
 //    UNLOCK(&_allBlocksMutex);
@@ -219,27 +218,33 @@ int ChainManager::was_added(int block_num) {
 
 int ChainManager::chain_size() {
 
-    if(!_isInit) return FAILURE;
+    if(_chainStatus == CLOSED ) return FAILURE;
 //    PRINT(_chainSize)
     return _chainSize;
 }
 
 void ChainManager::remove_leaf(int block_num)
 {
+//    LOCK(&_leafsMutex);
     _leafs.erase(remove(_leafs.begin(), _leafs.end(), block_num), _leafs.end());
+//    UNLOCK(&_leafsMutex);
 }
 
 void ChainManager::remove_deepestLeaf(int block_num)
 {
+    LOCK(&_deepestLeafsMutex);
     _deepestLeafs.erase(remove(_deepestLeafs.begin(), _deepestLeafs.end(), block_num), _deepestLeafs.end());
+    UNLOCK(&_deepestLeafsMutex);
 }
 
 void* ChainManager::daemonThread(void* ptr) {
-//    PRINT("DAEMON STARTED")
+    PRINT("DAEMON STARTED")
     ChainManager* chain = (ChainManager*) ptr;
-    while(!chain->_closeChain) {
+
+    while(chain->_chainStatus == INITIALIZED) {
 
 //        PRINT("waiting size " << chain->_waitingList.size())
+        LOCK(&chain->daemonMutex);
         if(chain->_waitingList.empty()) {
 //            LOCK(&chain->daemonMutex);
             if(pthread_cond_wait(&chain->waitingListCond, &chain->daemonMutex))
@@ -263,53 +268,62 @@ void* ChainManager::daemonThread(void* ptr) {
             chain->chain_block(toAttach);
             UNLOCK(&chain->generalMutex);
         }
+        UNLOCK(&chain->daemonMutex);
         //TODO : add condition wait
 
     }
+
     pthread_exit(NULL);
     return NULL;
 }
 
 
 int ChainManager::chain_block(Block* toChain) {
-    // to longest or father is missing
-//    PRINT("TO CHAIN" << toCHAIN)
-//    PRINT("CHAIN BLOCK" << toChain->_father)
+    toChain->_isAttached = true;
     if(toChain->_father == NULL) {
-//        LOCK(&_deepestLeafsMutex);
         Block* father = get_father_rand();
-//        UNLOCK(&_deepestLeafsMutex);
         toChain->_father = father;
         toChain->_depth = father->_depth + 1;
     }
+    if(toChain->_father == NULL) {
+        PRINT("FATHER NULL" << toChain->_id)
+        exit(1);
+    }
     toChain->generate_data();
-    // TODO : CHECK IF NEED TO LOCK LEAFS
-
     toChain->_father->add_son();
-    LOCK(&_leafsMutex);
-    LOCK(&_deepestLeafsMutex);
-
     if(toChain->_depth > _deepestDepth) { // deeper depth
+        LOCK(&_deepestLeafsMutex);
         _deepestLeafs.clear();
         _deepestLeafs.push_back(toChain->_id);
+        UNLOCK(&_deepestLeafsMutex);
+        LOCK(&_leafsMutex);
         _leafs.push_back(toChain->_id);
+        UNLOCK(&_leafsMutex);
         _deepestDepth = toChain->_depth;
     }
     else if (toChain->_depth == _deepestDepth){ // new leaf but not deepest
+        LOCK(&_leafsMutex);
         _leafs.push_back(toChain->_id);
+        UNLOCK(&_leafsMutex);
+        LOCK(&_deepestLeafsMutex);
         _deepestLeafs.push_back(toChain->_id);
+        UNLOCK(&_deepestLeafsMutex);
     }
     else {
+        LOCK(&_leafsMutex);
         _leafs.push_back(toChain->_id);
+        UNLOCK(&_leafsMutex);
     }
 
     if(toChain->_father->_cntSons == 1) {//removes the father only if he have one son.
+        LOCK(&_leafsMutex);
         remove_leaf(toChain->_fatherId);
+        UNLOCK(&_leafsMutex);
     }
     _chainSize++;
-    toChain->_isAttached = true;
-    UNLOCK(&_deepestLeafsMutex);
-    UNLOCK(&_leafsMutex);
+
+
+
 
 
     return SUCCESS;
@@ -340,20 +354,28 @@ int ChainManager::getUntouchable() {
 * RETURN VALUE: On success 0, otherwise -1.
 */
 int ChainManager::prune_chain() {
+
+    LOCK(&generalMutex);
     // TODO :: to check when return -1
     Block* tmpBlock;
     Block* findBlock;
     vector<int> allMinDepths;
-    LOCK(&generalMutex);
-    LOCK(&_allBlocksMutex);
+    if(_chainStatus != INITIALIZED) return FAILURE;
+
+
+    LOCK(&_leafsMutex);
     int leafsSize = _leafs.size();
+    UNLOCK(&_leafsMutex);
+
     LOCK(&_deepestLeafsMutex);
     int deepestId = _deepestLeafs[rand()%(_deepestLeafs.size())];
     UNLOCK(&_deepestLeafsMutex);
     // to find all the leafs with min depth
     for(int i = 0; i < leafsSize; i++) {
 
+        LOCK(&_allBlocksMutex);
         findBlock = _allBlocks.find(_leafs[i])->second;
+        UNLOCK(&_allBlocksMutex);
 
         // remove all blocks till sub-root
         if(findBlock->_id != deepestId) {
@@ -369,20 +391,35 @@ int ChainManager::prune_chain() {
                 tmpBlock->dcr_son();
 //                //sons after dcr_son()
 //                PRINT(findBlock->_father->_cntSons);
-                LOCK(&_blockIdsMutex);
-                _blockIds.push(findBlock->_id);
-                UNLOCK(&_blockIdsMutex);
+
+
+
+                LOCK(&_allBlocksMutex);
+                int id = findBlock->_id;
                 _allBlocks.erase(findBlock->_id);
+                delete (findBlock);
+                UNLOCK(&_allBlocksMutex);
+                LOCK(&_blockIdsMutex);
+                _blockIds.push(id);
+                UNLOCK(&_blockIdsMutex);
+
                 findBlock = tmpBlock;
             }
+
+//            LOCK(&_deepestLeafsMutex);
             remove_deepestLeaf(_leafs[i]);
+//            UNLOCK(&_deepestLeafsMutex);
+
+            LOCK(&_leafsMutex);
             remove_leaf(_leafs[i]);
+            UNLOCK(&_leafsMutex);
+
             leafsSize--;
 
         }
 
     }
-    UNLOCK(&_allBlocksMutex);
+
     UNLOCK(&generalMutex);
     return SUCCESS;
 }
@@ -395,49 +432,55 @@ int ChainManager::prune_chain() {
  * In case of a system error, the function should cause the process to exit.
  */
 void ChainManager::close_chain() {
-    _closeChain = true;
+
+//    pthread_cond_wait(&pruneCloseCond, &generalMutex);
+    _chainStatus = CLOSING;
     pthread_create(&closingTrd, NULL, close_chain_helper, this);
-    _closeChain = false;
-//    pthread_cond_signal(&waitingListCond);
 
 }
 
 void* ChainManager::close_chain_helper(void* ptr) {
+
     ChainManager* chain = (ChainManager*) ptr;
     LOCK(&chain->generalMutex);
-//    LOCK(&chain->_allBlocksMutex);
-//    LOCK(&chain->_leafsMutex);
-//    LOCK(&chain->_blockIdsMutex);
-//    LOCK(&chain->_allBlocksMutex);
-//    LOCK(&chain->_deepestLeafsMutex);
-
+    LOCK(&chain->_allBlocksMutex);
+    LOCK(&chain->_waitingListMutex);
     for(int block:chain->_waitingList) {
-//        PRINT(block);
+
         chain->_allBlocks[block]->generate_data();
+
         PRINT(chain->_allBlocks[block]->_data);
     }
-
+    for(auto it = chain->_allBlocks.begin(); it != chain->_allBlocks.end(); ++it){
+        if(it->second)
+          delete (it->second);
+    }
+    UNLOCK(&chain->_waitingListMutex);
     chain->_allBlocks.erase(chain->_allBlocks.begin());
+    UNLOCK(&chain->_allBlocksMutex);
+
+    LOCK(&chain->_waitingListMutex);
     chain->_waitingList.clear();
+    UNLOCK(&chain->_waitingListMutex);
+
+    LOCK(&chain->_leafsMutex);
     chain->_leafs.clear();
+    UNLOCK(&chain->_leafsMutex);
+
+    LOCK(&chain->_deepestLeafsMutex);
     chain->_deepestLeafs.clear();
+    UNLOCK(&chain->_deepestLeafsMutex);
+
+    LOCK(&chain->_blockIdsMutex);
     while(!chain->_blockIds.empty()) {
         chain->_blockIds.pop();
     }
+    UNLOCK(&chain->_blockIdsMutex);
 
 
 
-    chain->_isInit = false;
     close_hash_generator();
-
-
-
-//    UNLOCK(&chain->_deepestLeafsMutex);
-//    UNLOCK(&chain->_allBlocksMutex);
-//    UNLOCK(&chain->_blockIdsMutex);
-//    UNLOCK(&chain->_leafsMutex);
-//    UNLOCK(&chain->_allBlocksMutex);
-
+    UNLOCK(&chain->generalMutex);
     pthread_mutex_destroy(&chain->_waitingListMutex);
     pthread_mutex_destroy(&chain->_leafsMutex);
     pthread_mutex_destroy(&chain->_deepestLeafsMutex);
@@ -445,7 +488,7 @@ void* ChainManager::close_chain_helper(void* ptr) {
     pthread_mutex_destroy(&chain->_blockIdsMutex);
     pthread_mutex_destroy(&chain->daemonMutex);
     pthread_cond_destroy(&chain->waitingListCond);
-    UNLOCK(&chain->generalMutex);
+    chain->_chainStatus = CLOSED;
     pthread_exit(NULL);
 }
 
@@ -457,9 +500,9 @@ void* ChainManager::close_chain_helper(void* ptr) {
 int ChainManager::return_on_close() {
 //    pthread_cond_wait(&waitingListCond, &daemonMutex);
 //    while(_closeChain);
-
-    if(_closeChain) return pthread_join(closingTrd, NULL);
-    return -2;
+    if(_chainStatus != CLOSING) return FAILURE;
+    pthread_join(closingTrd, NULL);
+    return SUCCESS;
 }
 
 
