@@ -6,10 +6,11 @@
 using namespace std;
     Block::Block() {}
     Block::Block(int fatherId, int blockId, char* data, int dataLength, Block* father):
-            _fatherId(fatherId),
             _id(blockId),
-            _dataLength(dataLength),
+            _fatherId(fatherId),
             _father(father),
+            _dataLength(dataLength),
+            
             _isAttached(false),
             _cntSons(0)
     {

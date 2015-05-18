@@ -51,4 +51,3 @@ test: test1
 
 val: 
 	valgrind --tool=memcheck --leak-check=full test1 
-
