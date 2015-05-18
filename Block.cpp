@@ -32,11 +32,9 @@ using namespace std;
     }
     void Block::generate_data()
     {
-//        cout << "block id " << _id << endl;
         char* oldData = _data;
         _data = generate_hash(oldData, _dataLength, generate_nonce(_id,_fatherId));
         delete[] (oldData);
-//		delete _data;
     }
 
     int Block::get_id()

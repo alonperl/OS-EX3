@@ -1,7 +1,54 @@
-//
-// A multi threaded blockchain database manager
-// Created by alonperl on 5/12/15.
-//
+/**
+*   ChainManager.h
+*   __________________________________________________________________________
+*   A multi threaded blockchain database manager
+*   Functions:
+*       init_blockchain - This function initiates the Block chain,
+*       and creates the genesis Block. The genesis Block does not
+*       hold any transaction data or hash.
+*
+*       add_block - Ultimately, the function adds the hash of 
+*       the data to the Block chain.
+*
+*       to_longest - enforce the policy that this block_num
+*       should be attached to the longest chain at the time of attachment of
+*       the Block.
+*
+*       attach_now - This function blocks all other Block attachments,
+*       until block_num is added to the chain.
+*
+*       was_added - check whether block_num was added to the chain.
+*    
+*       chain_size - Return how many Blocks were attached to the
+*       chain since init_blockchain.
+*
+*       prune_chain - Search throughout the tree for sub-chains
+*       that are not the longest chain,
+*       detach them from the tree, free the blocks, and reuse the block_nums.
+*
+*       close_chain - Close the recent blockchain and reset the system, so that
+*       it is possible to call init_blockchain again.
+*
+*       return_on_close - The function blocks and waits for close_chain to finish.
+*
+*       chain_block - this function dose the actual chaining.
+*
+*       remove_leaf - removes block_num from _leafs list.
+*
+*       remove_deepestLeaf - removes block_num from _deepestLeafs list.
+*
+*       close_chain_helper - deleting all blocks from the chain
+*       and destroys all used mutexs and printing all hashed blocsk in _waitingList. 
+*
+*       get_father_rand - returns arbitrary longest chains
+*       leaf (if there is more than one).
+*
+*       ChainManager - constructor.
+*       
+*       get_new_id - the function returns the lowest available block_num (> 0) 
+*       
+*   Created by: Vladi Kravtsov, Alon Perelmuter.
+*/
 
 
 #ifndef EX3_CHAINMANAGER_H
@@ -21,20 +68,23 @@ class ChainManager
 {
 
 public:
+    //class mutexs.
     Status _chainStatus;
     pthread_mutex_t daemonMutex;
     pthread_mutex_t generalMutex;
-    pthread_t daemonTrd;
-    pthread_t closingTrd;
-    pthread_cond_t waitingListCond;
-    pthread_cond_t pruneCloseCond;
-    static void* daemonThread(void* ptr);
     pthread_mutex_t _deepestLeafsMutex;
     pthread_mutex_t _leafsMutex;
     pthread_mutex_t _waitingListMutex;
     pthread_mutex_t _allBlocksMutex;
     pthread_mutex_t _blockIdsMutex;
-
+    //class threads
+    pthread_t daemonTrd;
+    pthread_t closingTrd;
+    //class conditions
+    pthread_cond_t waitingListCond;
+    pthread_cond_t pruneCloseCond;
+    
+    //class data members.
     int _highestId;
     bool _closeChain;
     bool _isInit;
@@ -46,10 +96,11 @@ public:
     priority_queue<int, vector<int>, greater<int>> _blockIds;
     unordered_map<unsigned int, Block*> _allBlocks;
     Block* _genesis;
-    Block* get_father_rand();
+    
+    /*
+    * Class constructor.
+    */
     ChainManager();
-    int get_new_id();
-    int getUntouchable();
     /*
     * DESCRIPTION: This function initiates the Block chain, and creates the genesis Block. The genesis Block does not hold any transaction data
     * or hash.
@@ -119,33 +170,30 @@ public:
     */
     int return_on_close();
 
+    // this thread manages the asynchronous data addition operation.
+    static void* daemonThread(void* ptr);
+
+    //this function actualy dose the chaining.
+    //returen value: 0 on success. on failure exit and return 1.
     int chain_block(Block* toChain);
 
+    //removes block_num from _leafs list.
     void remove_leaf(int block_num);
 
-    Block* find_min_depth();
-
+    //removes block_num from _deepestLeafs list.
     void remove_deepestLeaf(int block_num);
 
+    //deleting all blocks from the chain and destroys all used mutexs.
+    //printing all hashed blocsk in _waitingList.
     static void* close_chain_helper(void* ptr);
 
+    //returns arbitrary longest chains leaf (if there is more than one).
+    Block* get_father_rand();
 
-
+    //the function returns the lowest available block_num (> 0) 
+    int get_new_id();
 
 private:
 
-
-
-
-
-
 };
-
-
-
-
-
-
-
-
 #endif //EX3_CHAINMANAGER_H
