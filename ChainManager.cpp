@@ -82,10 +82,12 @@ ChainManager::ChainManager() {
 }
 
 /*
-* DESCRIPTION: This function initiates the Block chain, and creates the genesis Block. The genesis Block does not hold any transaction data
-* or hash.
-* This function should be called prior to any other functions as a necessary precondition for their success (all other functions should return
-* with an error otherwise).
+* DESCRIPTION: This function initiates the Block chain,
+* and creates the genesis Block. The genesis Block does not
+* hold any transaction data or hash.
+* This function should be called prior to any other functions
+* as a necessary precondition for their success (all other functions
+* should return with an error otherwise).
 * RETURN VALUE: On success 0, otherwise -1.
 */
 int ChainManager::init_blockchain() {
@@ -105,7 +107,6 @@ int ChainManager::init_blockchain() {
             pthread_mutex_init(&_allBlocksMutex, NULL);
             pthread_mutex_init(&_blockIdsMutex, NULL);
             _genesis = new Block(GENESIS_FATHER_ID, GENESIS_ID, GENESIS_DATA, GENESIS_LENGTH, GENESIS_FPTR);
-            <int, vector<int>, greater<int>>();
             LOCK(&_allBlocksMutex);
             _allBlocks[GENESIS_ID] = _genesis;
             UNLOCK(&_allBlocksMutex);
@@ -418,6 +419,7 @@ int ChainManager::prune_chain() {
                 tmpBlock->dcr_son();
                 LOCK(&_allBlocksMutex);
                 int id = findBlock->_id;
+                _allBlocks.erase(findBlock->_id);
                 delete (findBlock);
                 UNLOCK(&_allBlocksMutex);
                 LOCK(&_blockIdsMutex);
@@ -517,7 +519,6 @@ void* ChainManager::close_chain_helper(void* ptr) {
 */
 int ChainManager::return_on_close() {
     //in case init_blockchain was not called.
-    if(_chainStatus != INITIALIZED) return FAILURE;
     if(_chainStatus != CLOSING) return CLOSE_CHAIN_WAS_NOT_CALLED;
     pthread_join(closingTrd, NULL);
     return SUCCESS;
